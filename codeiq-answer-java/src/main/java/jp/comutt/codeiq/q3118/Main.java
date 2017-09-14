@@ -5,8 +5,10 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Scanner;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class Main {
 
@@ -28,75 +30,59 @@ public class Main {
             }
         }
 
-        System.out.println(new Logic().solve(matrix, 0, 0, 0).get());
+        System.out.println(new Logic().solve(matrix, 0, 0, 0).getAsInt());
     }
 
     public static class Logic {
 
         private int minSum = Integer.MAX_VALUE;
 
-        public Optional<Integer> solve(List<List<Integer>> matrix, int x, int y, int prevSum) {
+        public OptionalInt solve(List<List<Integer>> matrix, int x, int y, int prevSum) {
             if (prevSum > minSum) {
-                return Optional.empty();
+                return OptionalInt.empty();
             }
 
             if (x == (matrix.get(0).size() - 1) && (y == matrix.size() - 1)) {
                 int sum = prevSum + matrix.get(y).get(x);
                 if (minSum > sum) {
                     minSum = sum;
-                    return Optional.of(sum);
+                    return OptionalInt.of(sum);
                 } else {
-                    return Optional.empty();
+                    return OptionalInt.empty();
                 }
             }
 
-            Optional<Integer> nextRight = Optional.empty();
+            OptionalInt nextRight = OptionalInt.empty();
             if (x + 1 < matrix.get(0).size()) {
-                nextRight = Optional.of(matrix.get(y).get(x + 1));
+                nextRight = OptionalInt.of(matrix.get(y).get(x + 1));
             }
 
-            Optional<Integer> nextDown = Optional.empty();
+            OptionalInt nextDown = OptionalInt.empty();
             if (y + 1 < matrix.size()) {
-                nextDown = Optional.of(matrix.get(y + 1).get(x));
+                nextDown = OptionalInt.of(matrix.get(y + 1).get(x));
             }
 
             if (nextRight.isPresent() && nextDown.isPresent()) {
-                Optional<Integer> r = goRight(matrix, x, y, prevSum);
-                Optional<Integer> d = goDown(matrix, x, y, prevSum);
-                if (r.isPresent() && d.isPresent()) {
-                    return r.get() < d.get() ? r : d;
-                } else if (r.isPresent()) {
-                    return r;
-                } else if (d.isPresent()) {
-                    return d;
-                } else {
-                    return Optional.empty();
-                }
+                return Stream.of(goRight(matrix, x, y, prevSum), goDown(matrix, x, y, prevSum))
+                        .parallel()
+                        .filter(OptionalInt::isPresent)
+                        .mapToInt(OptionalInt::getAsInt)
+                        .min();
             } else if (nextRight.isPresent()) {
                 return goRight(matrix, x, y, prevSum);
             } else if (nextDown.isPresent()) {
                 return goDown(matrix, x, y, prevSum);
             } else {
-                return Optional.empty();
+                return OptionalInt.empty();
             }
         }
 
-        private Optional<Integer> goRight(List<List<Integer>> matrix, int x, int y, int prevSum) {
-            Optional<Integer> o = solve(matrix, x + 1, y, prevSum + matrix.get(y).get(x));
-            if (o.isPresent()) {
-                return Optional.of(o.get());
-            } else {
-                return Optional.empty();
-            }
+        private OptionalInt goRight(List<List<Integer>> matrix, int x, int y, int prevSum) {
+            return solve(matrix, x + 1, y, prevSum + matrix.get(y).get(x));
         }
 
-        private Optional<Integer> goDown(List<List<Integer>> matrix, int x, int y, int prevSum) {
-            Optional<Integer> o = solve(matrix, x, y + 1, prevSum + matrix.get(y).get(x));
-            if (o.isPresent()) {
-                return Optional.of(o.get());
-            } else {
-                return Optional.empty();
-            }
+        private OptionalInt goDown(List<List<Integer>> matrix, int x, int y, int prevSum) {
+            return solve(matrix, x, y + 1, prevSum + matrix.get(y).get(x));
         }
 
     }
@@ -128,6 +114,15 @@ public class Main {
                 }
 
                 if (!Objects.equals(optActual.get(), expected)) {
+                    throw new AssertionError("expected " + expected + " but was " + actual);
+                }
+            } else if (actual instanceof OptionalInt) {
+                OptionalInt optActual = (OptionalInt) actual;
+                if (!optActual.isPresent()) {
+                    throw new AssertionError("expected " + expected + " but was not present");
+                }
+
+                if (!Objects.equals(optActual.getAsInt(), expected)) {
                     throw new AssertionError("expected " + expected + " but was " + actual);
                 }
             } else {

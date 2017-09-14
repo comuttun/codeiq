@@ -28,14 +28,26 @@ public class Main {
             }
         }
 
-        System.out.println(new Logic().solve(matrix, 0, 0).get());
+        System.out.println(new Logic().solve(matrix, 0, 0, 0).get());
     }
 
     public static class Logic {
 
-        public Optional<Integer> solve(List<List<Integer>> matrix, int x, int y) {
+        private int minSum = Integer.MAX_VALUE;
+
+        public Optional<Integer> solve(List<List<Integer>> matrix, int x, int y, int prevSum) {
+            if (prevSum > minSum) {
+                return Optional.empty();
+            }
+
             if (x == (matrix.get(0).size() - 1) && (y == matrix.size() - 1)) {
-                return Optional.of(matrix.get(y).get(x));
+                int sum = prevSum + matrix.get(y).get(x);
+                if (minSum > sum) {
+                    minSum = sum;
+                    return Optional.of(sum);
+                } else {
+                    return Optional.empty();
+                }
             }
 
             Optional<Integer> nextRight = Optional.empty();
@@ -49,33 +61,39 @@ public class Main {
             }
 
             if (nextRight.isPresent() && nextDown.isPresent()) {
-                if (nextRight.get() < nextDown.get()) {
-                    return goRight(matrix, x, y);
+                Optional<Integer> r = goRight(matrix, x, y, prevSum);
+                Optional<Integer> d = goDown(matrix, x, y, prevSum);
+                if (r.isPresent() && d.isPresent()) {
+                    return r.get() < d.get() ? r : d;
+                } else if (r.isPresent()) {
+                    return r;
+                } else if (d.isPresent()) {
+                    return d;
                 } else {
-                    return goDown(matrix, x, y);
+                    return Optional.empty();
                 }
             } else if (nextRight.isPresent()) {
-                return goRight(matrix, x, y);
+                return goRight(matrix, x, y, prevSum);
             } else if (nextDown.isPresent()) {
-                return goDown(matrix, x, y);
+                return goDown(matrix, x, y, prevSum);
             } else {
                 return Optional.empty();
             }
         }
 
-        private Optional<Integer> goRight(List<List<Integer>> matrix, int x, int y) {
-            Optional<Integer> o = solve(matrix, x + 1, y);
+        private Optional<Integer> goRight(List<List<Integer>> matrix, int x, int y, int prevSum) {
+            Optional<Integer> o = solve(matrix, x + 1, y, prevSum + matrix.get(y).get(x));
             if (o.isPresent()) {
-                return Optional.of(matrix.get(y).get(x) + o.get());
+                return Optional.of(o.get());
             } else {
                 return Optional.empty();
             }
         }
 
-        private Optional<Integer> goDown(List<List<Integer>> matrix, int x, int y) {
-            Optional<Integer> o = solve(matrix, x, y + 1);
+        private Optional<Integer> goDown(List<List<Integer>> matrix, int x, int y, int prevSum) {
+            Optional<Integer> o = solve(matrix, x, y + 1, prevSum + matrix.get(y).get(x));
             if (o.isPresent()) {
-                return Optional.of(matrix.get(y).get(x) + o.get());
+                return Optional.of(o.get());
             } else {
                 return Optional.empty();
             }
@@ -98,7 +116,7 @@ public class Main {
                     Arrays.asList(5, 0, 2)
             );
 
-            assertEquals(sut.solve(matrix, 0, 0), 11);
+            assertEquals(sut.solve(matrix, 0, 0, 0), 11);
         }
 
 
